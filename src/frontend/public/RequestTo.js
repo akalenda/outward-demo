@@ -1,12 +1,11 @@
 class RequestTo {
 
-    static DYNAMIC_REQUEST_PREFIX = "?";
-
     /**
      * @param {String} uri
      */
     constructor (uri) {
-        this.request = new Request(RequestTo.DYNAMIC_REQUEST_PREFIX + uri);
+        this._uri = uri;
+        this._details = {};
     }
 
     /**
@@ -14,8 +13,8 @@ class RequestTo {
      * @returns {RequestTo}
      */
     sendingPlainText(text) {
-        this.request.contentType = HttpProtocols.CONTENT_TYPES.plainText;
-        this.request.body = text;
+        this._details.contentType = HttpProtocols.CONTENT_TYPES.plainText;
+        this._details.body = text;
         return this;
     }
 
@@ -23,8 +22,8 @@ class RequestTo {
      * @returns {FutureResponse}
      */
     POST() {
-        this.request.method = "POST";
-        let promisedResponse = fetch(this.request);
+        this._details.method = "POST";
+        let promisedResponse = fetch(this._uri, this._details);
         return new FutureResponse(promisedResponse);
     }
 }
