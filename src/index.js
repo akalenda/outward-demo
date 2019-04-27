@@ -9,6 +9,10 @@ const router = new KoaRouter();
 app.use(KoaLogger());
 app.use(KoaStatic('frontend/public'));
 
+router.get('/api/math', (ctx, next) => ctx.body = MathExpression.from(ctx.body).evaluate().toString());
+
 app.use(router.routes());
 app.use(router.allowedMethods());
 app.listen(3000);
+
+
