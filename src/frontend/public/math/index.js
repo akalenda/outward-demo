@@ -1,4 +1,4 @@
-const MATH_URI = '/proc';
+const MATH_URI = '/api/math';
 const resultsField = document.getElementById('results');
 
 try{
@@ -37,14 +37,8 @@ function haveServerEvaluate(mathExpression) {
 }
 
 /**
- * @callback PromiseMapper
- * @param {String}
- * @returns {PromiseLike}
- */
-
-/**
  * @param {HTMLElement} htmlElement
- * @returns {PromiseMapper}
+ * @returns {(function(String): PromiseLike)}
  */
 function placeEvaluatedExpressionIn(htmlElement){
     return evaluatedExpr => {
@@ -55,7 +49,7 @@ function placeEvaluatedExpressionIn(htmlElement){
 
 /**
  * @param {HTMLElement} htmlElement
- * @returns {PromiseMapper}
+ * @returns {(function(String): PromiseLike)}
  */
 function displayErrorsIn(htmlElement) {
     return error => {
