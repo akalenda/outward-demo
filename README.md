@@ -1,8 +1,12 @@
 # Outward Demo
 
-This is a simple [Koa.js](https://koajs.com) application. Koa.js is a server-side framework
-for NodeJS. It is very light-weight, with most functionality being accomplished
-through "middleware" (e.g. plugins, extensions, whatever you want to call it).
+This is a simple [Koa.js](https://koajs.com) 
+application being done as an exercise. 
+
+Koa.js is a server-side framework for NodeJS. It is very 
+light-weight, with most functionality being accomplished
+through "middleware" (e.g. plugins, extensions, whatever 
+you want to call it).
 
 ## Use cases
 
@@ -13,7 +17,8 @@ through "middleware" (e.g. plugins, extensions, whatever you want to call it).
         - subtraction
         - multiplication
         - division
-    - POSTs to server
+    - `POST` to server. (Arguably, this should be a `GET` since it does not
+        change the server-side state, but this is being done as an exercise)
     - Server processes and replies to front-end
     - Front-end displays
  3. When navigating to `/auth`:
