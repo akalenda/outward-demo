@@ -16,6 +16,9 @@ class MathExpression extends BinaryTree {
         return new MathExpression(leftOperand, operator, rightOperand);
     }
 
+    /**
+     * @returns {*}
+     */
     evaluate(){
         if (typeof this.data === 'function') {
             let operator = this.data;
