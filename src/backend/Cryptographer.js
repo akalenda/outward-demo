@@ -42,11 +42,13 @@ class Cryptographer {
     }
 
     static sha512(str) {
-        return undefined;
+        // TODO: fill stub
+        return str;
     }
 
     static bcrypt(str) {
-
+        // TODO: fill stub
+        return str;
     }
 
     /**

@@ -20,8 +20,7 @@ router.post('/api/math', async (ctx, ignored) => {
 
 router.get('/auth', async (ctx, ignored) => {
     try {
-        // TODO: Surely a better way to handle these booleans.
-        // Maybe Promises/yield? But that mixes up intentional exceptions with unintended errors...
+        // TODO: Surely there's a better way to handle these booleans. Maybe Promises/yield? But that mixes up intentional exceptions with unintended errors...
         let sessionCookie = await getSessionCookieFrom(ctx);
         if (sessionCookie) {
             let login = await Login.getByKey(sessionCookie);
@@ -40,6 +39,7 @@ router.get('/auth', async (ctx, ignored) => {
 
 router.post('/api/login', async (ctx, ignored) => {
     try {
+        // TODO: Measure timing and create a lower bound. Wrap login process so that, regardless of execution path, it takes the same time. This is to provide some protection against timing attacks.
         let username = 'testuser'.toLowerCase();
         let password = 'password1234';
         let userLogin = new Login(username, password).attemptLogin();
