@@ -17,14 +17,13 @@ class MathExpression extends BinaryTree {
     }
 
     evaluate(){
-        this.traverse(null, null, expr => {
-            if (typeof this.data === 'function') {
-                let operator = this.data;
-                let leftOperand = this.leftChild.data;
-                let rightOperand = this.rightChild.data;
-                this.data = operator(leftOperand, rightOperand);
-            }
-        })
+        if (typeof this.data === 'function') {
+            let operator = this.data;
+            let leftOperand = this.leftChild.evaluate();
+            let rightOperand = this.rightChild.evaluate();
+            return operator(leftOperand, rightOperand);
+        }
+        return this.data;
     }
 }
 
