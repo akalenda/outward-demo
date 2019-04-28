@@ -1,3 +1,5 @@
+'use strict';
+
 const Koa = require('koa');
 const KoaBodyParser = require('koa-bodyparser');
 const KoaLogger = require('koa-logger');
