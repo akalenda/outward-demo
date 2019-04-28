@@ -8,7 +8,7 @@ class BinaryTree {
 
     toString() {
         let stringBuilder = [];
-        super.traverse(null, node => stringBuilder.push(node.data.toString()), null);
+        this.traverse(null, node => stringBuilder.push(node.data.toString()), null);
         return stringBuilder.join(' ');
     }
 
