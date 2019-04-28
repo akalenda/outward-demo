@@ -1,5 +1,3 @@
-const IDENTITY_OPERATOR = x => x;
-
 class MathExpression extends BinaryTree {
 
     /**
@@ -11,15 +9,22 @@ class MathExpression extends BinaryTree {
         let operatorBoundaryRegex = /(?<=[-+*/])|(?=[-+*/])/;
         let terms = str.split(operatorBoundaryRegex);
 
-        let leftOperand = new MathExpression(Number(terms[0]), IDENTITY_OPERATOR, null);
+        let leftOperand = new MathExpression(null, Number(terms[0]), null);
         let operator = operatorStringToFunctor(terms[1]);
-        let rightOperand = new MathExpression(Number(terms[2]), IDENTITY_OPERATOR, null);
+        let rightOperand = new MathExpression(null, Number(terms[2]), null);
 
         return new MathExpression(leftOperand, operator, rightOperand);
     }
 
     evaluate(){
-
+        this.traverse(null, null, expr => {
+            if (typeof this.data === 'function') {
+                let operator = this.data;
+                let leftOperand = this.leftChild.data;
+                let rightOperand = this.rightChild.data;
+                this.data = operator(leftOperand, rightOperand);
+            }
+        })
     }
 }
 
