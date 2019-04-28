@@ -13,8 +13,14 @@ class InternalCache {
      */
     constructor(secondsToLive) {
         this._secondsToLive = secondsToLive;
-        this._map = {};
         this._continueFlushing = true;
+        /**
+         * @type {{String: Entry}}
+         * @private
+         */
+        this._map = {};
+        // noinspection JSIgnoredPromiseFromCall
+        this._periodicallyFlushExpiredEntries();
     }
 
     /**
@@ -22,7 +28,7 @@ class InternalCache {
      * @param {*} value
      */
     stash(key, value) {
-        this._map[key] = new Entry(value, this._generateExpirationTime());
+        this._map[key] = new Entry(value, this._generateExpirationDate());
     }
 
     /**
@@ -31,7 +37,7 @@ class InternalCache {
      */
     getAndRefresh(key) {
         let entry = this._map[key];
-        entry.setTime(this._generateExpirationTime());
+        this._refreshTimeOn(entry);
         return entry.value;
     }
 
@@ -44,6 +50,16 @@ class InternalCache {
     }
 
     /**
+     * @param {String} key
+     * @returns {Date}
+     */
+    refreshAndGetExpirationDate(key){
+        let entry = this._map[key];
+        this._refreshTimeOn(entry);
+        return entry.expirationDate;
+    }
+
+    /**
      * @param key
      * @returns {boolean}
      */
@@ -52,11 +68,12 @@ class InternalCache {
     }
 
     /**
-     * @returns {number}
+     * @returns {Date}
      * @private
      */
-    _generateExpirationTime() {
-        return (new Date().getTime()) + (this._secondsToLive * MILLISECONDS_PER_SECOND);
+    _generateExpirationDate() {
+        let time = (new Date().getTime()) + (this._secondsToLive * MILLISECONDS_PER_SECOND);
+        return new Date(time);
     }
 
     async _periodicallyFlushExpiredEntries() {
@@ -64,7 +81,7 @@ class InternalCache {
         // It'd be a tradeoff. More frequent flushes means smaller batches, but more context switches
         const millisecondsInterval = this._secondsToLive * MILLISECONDS_PER_SECOND;
         while (this._continueFlushing) {
-            this._flushingService = setTimeout(this._flushExpiredEntries(), millisecondsInterval);
+            this._flushingService = setTimeout(this._flushExpiredEntries, millisecondsInterval);
             await this._flushingService;
         }
     }
@@ -83,9 +100,13 @@ class InternalCache {
         keysToFlush.forEach(this.remove);  // TODO: double-check that `this` binds to the InternalCache
     }
 
-    shutDownBackgroundProcesses() {
+    shutDownBackgroundProcesses(){
         this._continueFlushing = false;
         clearTimeout(this._flushingService);
+    }
+
+    _refreshTimeOn(entry){
+        entry.expirationDate = this._generateExpirationDate();
     }
 }
 
@@ -96,18 +117,18 @@ class Entry {
 
     /**
      * @param {*} value
-     * @param {Number} expirationTime
+     * @param {Date} expirationDate
      */
-    constructor(value, expirationTime){
+    constructor(value, expirationDate){
         this.value = value;
-        this.expirationTime = expirationTime;
+        this.expirationDate = expirationDate;
     }
 
     /**
      * @returns {boolean}
      */
     hasExpired(){
-        return this.expirationTime > (new Date().getTime());
+        return this.expirationDate < new Date();
     }
 }
 
