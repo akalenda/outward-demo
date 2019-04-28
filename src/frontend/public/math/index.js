@@ -1,18 +1,29 @@
 const MATH_URI = '/api/math';
 const resultsField = document.getElementById('results');
+const submitButton = document.getElementById('submitButton');
+const mathExprInput = document.getElementById('mathExpr');
 
 try{
-    document.getElementById('submitButton').onclick = function submitButtonClicked(ignored) {
-        let mathExpression = this.value;
-        if (expressionIsValid(mathExpression)) {
-            haveServerEvaluate(mathExpression)
-                .then(placeEvaluatedExpressionIn(resultsField))
-                .catch(displayErrorsIn(resultsField))
-            ;
-        }
+    submitButton.onclick = function submitButtonClicked(ignored) {
+        submitMathExpressionToServer()
     };
+    mathExprInput.addEventListener('keyup', function(event){
+        if (event.key === "Enter"){
+            submitMathExpressionToServer();
+        }
+    });
 }catch(error){
     displayErrorsIn(resultsField)(error);
+}
+
+function submitMathExpressionToServer() {
+    let mathExpression = mathExprInput.value;
+    if (expressionIsValid(mathExpression)) {
+        haveServerEvaluate(mathExpression)
+            .then(placeEvaluatedExpressionIn(resultsField))
+            .catch(displayErrorsIn(resultsField))
+        ;
+    }
 }
 
 /**
