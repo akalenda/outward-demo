@@ -8,7 +8,7 @@ const usersCurrentyLoggedIn = new InternalCache(LOGIN_EXPIRY);
 
 class Login {
 
-    static database = new FakeDatabase();
+    static database = Database;
 
     /**
      * @param {String} key
