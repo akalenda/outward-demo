@@ -45,7 +45,7 @@ router.post('/api/login', async (ctx, ignored) => {
         if (sessionCookie) {
             let login = Login.getByKey(sessionCookie);
             if (login) {
-                // redirect to authenticated page
+                ctx.redirect('/auth');
             } else {
                 // expire cookie
             }
@@ -56,8 +56,7 @@ router.post('/api/login', async (ctx, ignored) => {
         if (userLogin._isLoggedIn) {
             let sessionCookie = userLogin.getKey();
             // set sessionCookie in response
-            // set status ok
-            // redirect to new page
+            ctx.redirect('/auth');
         } else {
             // set status 403
         }
@@ -74,7 +73,7 @@ router.post('/api/logout', async (ctx, ignored) => {
         if (login) {
             login.logout();
         }
-        // redirect
+        ctx.redirect('/auth');
     } catch (error) {
         console.log(error);
         // send message regarding failure to log out
