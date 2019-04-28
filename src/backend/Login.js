@@ -59,6 +59,10 @@ class Login {
     getKey() {
         return this._key;
     }
+
+    getExpirationDate() {
+        return usersCurrentyLoggedIn.refreshAndGetExpirationDate(key);
+    }
 }
 
 module.exports = Login;
