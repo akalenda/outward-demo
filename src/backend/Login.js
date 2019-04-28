@@ -1,9 +1,10 @@
 const Cryptographer = require('Cryptographer');
-const FakeDatabase = require('./FakeDatabase');
+const Database = require('./Database');
+const InternalCache = require('./InternalCache');
 
 const SECONDS_PER_MINUTE = 60;
 const LOGIN_EXPIRY = 10 * SECONDS_PER_MINUTE;
-const usersCurrentyLoggedIn = new Cache(LOGIN_EXPIRY);
+const usersCurrentyLoggedIn = new InternalCache(LOGIN_EXPIRY);
 
 class Login {
 
