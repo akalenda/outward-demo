@@ -41,3 +41,5 @@ class BinaryTree {
         recurse(this);
     }
 }
+
+module.exports = BinaryTree;

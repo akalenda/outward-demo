@@ -1,3 +1,5 @@
+const BinaryTree = require('./BinaryTree');
+
 class MathExpression extends BinaryTree {
 
     /**
@@ -48,3 +50,5 @@ function operatorStringToFunctor(operatorAsString) {
         default: throw new Error("Unsupported operator " + operatorAsString);
     }
 }
+
+module.exports = MathExpression;
