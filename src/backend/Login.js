@@ -24,7 +24,8 @@ class Login {
      */
     constructor(username, password) {
         this._username = username;
-        this._encryptedPassword = Cryptographer.encrypt(password);
+        this._salt = Login.database.getSalt(this._username);
+        this._encryptedPassword = Cryptographer.encrypt(password, this._salt);
         this._isLoggedIn = false;
     }
 
@@ -32,10 +33,10 @@ class Login {
      * @returns {Login}
      */
     attemptLogin() {
-        let storedEncryptedPassword = Login.database.getValueFor(this._username);
-        if (storedEncryptedPassword === this._encryptedPassword) {
-            this._key = Cryptographer.encrypt(this._username);
-            usersCurrentyLoggedIn.put(this._key, this);
+        let storedEncryptedPassword = Login.database.getPassword(this._username);
+        if (Cryptographer.slowEquals(storedEncryptedPassword, this._encryptedPassword)) {
+            this._key = Cryptographer.sha512(this._username);  // TODO: Should we use the heavy-duty encryption for this too?
+            usersCurrentyLoggedIn.stash(this._key, this);
             return this;
         }
         return this;
