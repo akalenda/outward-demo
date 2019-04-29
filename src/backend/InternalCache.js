@@ -20,7 +20,7 @@ class InternalCache {
          */
         this._map = {};
         // noinspection JSIgnoredPromiseFromCall
-        this._periodicallyFlushExpiredEntries();
+        //this.startPeriodicFlushing(); TODO: Disabled because it messes with debugger step-through. Uncomment later.
     }
 
     /**
@@ -76,13 +76,12 @@ class InternalCache {
         return new Date(time);
     }
 
-    async _periodicallyFlushExpiredEntries() {
+    async startPeriodicFlushing() {
         // TODO: Depending on how long this takes, we may want to do it more frequently
         // It'd be a tradeoff. More frequent flushes means smaller batches, but more context switches
         const millisecondsInterval = this._secondsToLive * MILLISECONDS_PER_SECOND;
         while (this._continueFlushing) {
             this._flushingService = setInterval(this._flushExpiredEntries, millisecondsInterval);
-            await this._flushingService;
         }
     }
 
@@ -100,7 +99,7 @@ class InternalCache {
         keysToFlush.forEach(this.remove);  // TODO: double-check that `this` binds to the InternalCache
     }
 
-    shutDownBackgroundProcesses(){
+    stopPeriodicFlushing(){
         this._continueFlushing = false;
         clearTimeout(this._flushingService);
     }
