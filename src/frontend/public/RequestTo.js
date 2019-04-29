@@ -6,7 +6,8 @@ class RequestTo {
     constructor (uri) {
         this._uri = uri;
         this._details = {
-            headers: {}
+            headers: {},
+            credentials: 'include'
         };
     }
 

@@ -38,7 +38,7 @@ function logInto(username, password) {
             username: username,
             password: password
         }).POST()
-        .receivePlainText();
+        .redirect();
 }
 
 /**

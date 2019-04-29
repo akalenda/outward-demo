@@ -13,4 +13,12 @@ class FutureResponse {
     receivePlainText() {
         return this.responsePromise.then(response => response.text());
     }
+
+    redirect() {
+        return this.responsePromise.then(response => {
+            if (response.redirected === true) {
+                window.location.replace(response.url)
+            }
+        })
+    }
 }

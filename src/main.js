@@ -62,33 +62,30 @@ async function setKoaToUseMiddleware() {
 function startMathService() {
     router.post('/api/math', async (ctx, ignored) => {
         let text = ctx.request.body.text;
-        ctx.body = MathExpression.from(text).evaluate().toString()
+        ctx.body = MathExpression.from(text).evaluate().toString();
     });
 }
 
 function startAuthService() {
-    function wrapResourceRequest(bodyContentProducer, requestPath, localFilePath){
-        router.get(requestPath, async (ctx, ignored) => {
-            try {
-                // TODO: Surely there's a better way to handle these booleans. Maybe Promises/yield? But that mixes up intentional exceptions with unintended errors...
-                let userKey = getCookie(ctx, SESSION_KEY);
-                if (userKey) {
-                    let login = Login.getByKey(userKey);
-                    if (login) {
-                        bodyContentProducer(ctx, localFilePath);
-                    } else {
-                        ctx.body = await showLoginPage(ctx);
-                    }
+    router.get('/auth', async (ctx, ignored) => {
+        try {
+            // TODO: Surely there's a better way to handle these booleans. Maybe Promises/yield? But that mixes up intentional exceptions with unintended errors...
+            let userKey = getCookie(ctx, SESSION_KEY);
+            if (userKey) {
+                let login = Login.getByKey(userKey);
+                if (login) {
+                    sendHtml(ctx, './frontend/private/auth/auth.html');
                 } else {
                     ctx.body = await showLoginPage(ctx);
                 }
-            } catch (error) {
-                console.log(error);
-                ctx.throw(403);
+            } else {
+                ctx.body = await showLoginPage(ctx);
             }
-        });
-    }
-    wrapResourceRequest(sendHtml, '/auth', './frontend/private/auth/auth.html');
+        } catch (error) {
+            console.log(error);
+            ctx.throw(403);
+        }
+    });
 }
 
 function startLoginService() {
@@ -100,9 +97,11 @@ function startLoginService() {
                 let login = Login.getByKey(userKey);
                 if (login) {
                     ctx.redirect('/auth');
+                    return ctx;
                 } else {
                     expireCookie(ctx, SESSION_KEY);
                     ctx.body = await showLoginPage(ctx);
+                    return ctx;
                 }
             }
             let username = ctx.request.body.username.toLowerCase();
@@ -111,6 +110,7 @@ function startLoginService() {
             if (userLogin._isLoggedIn) {
                 setCookie(ctx, SESSION_KEY, userLogin.getKey(), userLogin.getExpirationDate());
                 ctx.redirect('/auth');
+                return ctx;
             } else {
                 ctx.throw(403);
             }
@@ -118,6 +118,7 @@ function startLoginService() {
             console.log(error);
             ctx.throw(403);
         }
+        return ctx;
     });
 }
 
@@ -164,15 +165,20 @@ function expireCookie(ctx, name) {
 
 function setCookie(ctx, name, value, expirationDate) {
     let options = {  // TODO: credentials
-        domain: DOMAIN,
+        /*domain: DOMAIN,
         secure: false,  // TODO: switch to SSL, set true
         samesite: true,
-        overwrite: true
+        overwrite: true,*/
+        httpOnly: false
     };
     if(expirationDate instanceof Date) {
         options.expires = expirationDate;
     }
+    // TODO: Setting cookies isn't happening! That's why we can't log in. But WHYYYYYyyyyyy
     ctx.cookies.set(name, value, options);
+    if (ctx.cookies.keys === undefined) {
+        throw new Error("Server is not setting cookies...")
+    }
 }
 
 function showLoginPage(ctx) {
