@@ -74,18 +74,15 @@ function startAuthService() {
                 let login = Login.getByKey(userKey);
                 if (login) {
                     ctx.body = await showAuthPage(ctx);
-                    ctx.set('Content-Type', HttpProtocols.CONTENT_TYPES.html);
                 } else {
                     ctx.body = await showLoginPage(ctx);
-                    ctx.set('Content-Type', HttpProtocols.CONTENT_TYPES.html);
                 }
             } else {
                 ctx.body = await showLoginPage(ctx);
-                ctx.set('Content-Type', HttpProtocols.CONTENT_TYPES.html);
             }
         } catch (error) {
             console.log(error);
-            // show status 403
+            ctx.throw(403);
         }
     });
 }
@@ -94,13 +91,14 @@ function startLoginService() {
     router.post('/api/login', async (ctx, ignored) => {
         try {
             // TODO: Measure timing and create a lower bound. Wrap login process so that, regardless of execution path, it takes the same time. This is to provide some protection against timing attacks.
-            let userKey = getCookie(ctx);
+            let userKey = getCookie(ctx, SESSION_KEY);
             if (userKey) {
                 let login = Login.getByKey(userKey);
                 if (login) {
                     ctx.redirect('/auth');
                 } else {
                     expireCookie(ctx, SESSION_KEY);
+                    ctx.body = await showLoginPage(ctx);
                 }
             }
             let username = 'testuser'.toLowerCase();
@@ -110,11 +108,11 @@ function startLoginService() {
                 setCookie(ctx, SESSION_KEY, userLogin.getKey(), userLogin.getExpirationDate());
                 ctx.redirect('/auth');
             } else {
-                // set status 403
+                ctx.throw(403);
             }
         } catch (error) {
             console.log(error);
-            // set status 403
+            ctx.throw(403);
         }
     });
 }
@@ -167,11 +165,13 @@ function setCookie(ctx, name, value, expirationDate) {
     ctx.cookies.set(name, value, options);
 }
 
-function showLoginPage() {
+function showLoginPage(ctx) {
+    ctx.set('Content-Type', HttpProtocols.CONTENT_TYPES.html);
     return getPromiseOfFileContents('./frontend/private/auth/login.html');
 }
 
-function showAuthPage() {
+function showAuthPage(ctx) {
+    ctx.set('Content-Type', HttpProtocols.CONTENT_TYPES.html);
     return getPromiseOfFileContents('./frontend/private/auth/auth.html');
 }
 
