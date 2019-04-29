@@ -1,6 +1,7 @@
 'use strict';
 
 const fs = require('fs');
+const HttpProtocols = require('./frontend/public/HttpProtocols');
 const Koa = require('koa');
 const KoaBodyParser = require('koa-bodyparser');
 const KoaLogger = require('koa-logger');
