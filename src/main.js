@@ -1,5 +1,6 @@
 'use strict';
 
+const fs = require('fs');
 const Koa = require('koa');
 const KoaBodyParser = require('koa-bodyparser');
 const KoaLogger = require('koa-logger');
@@ -13,6 +14,7 @@ const router = new KoaRouter();
 
 const SESSION_KEY = 'sessionKey';
 const DOMAIN = 'outward-demo';
+const PORT = 3000;
 
 startServices().catch(error => {
     console.log(error)
@@ -22,11 +24,11 @@ async function startServices() {
     let loginsAreAvailable = await insertTestUserIntoDatabase();
     if (!loginsAreAvailable)
         throw new Error('Failed to store in database despite no obvious error :(');
-    setKoaToUseMiddleware();
+    await setKoaToUseMiddleware();
     startMathService();
     startAuthService();
     startLoginService();
-    startLogoutService();
+    await startLogoutService();
     startServer()
 }
 
@@ -66,16 +68,19 @@ function startAuthService() {
     router.get('/auth', async (ctx, ignored) => {
         try {
             // TODO: Surely there's a better way to handle these booleans. Maybe Promises/yield? But that mixes up intentional exceptions with unintended errors...
-            let userKey = getCookie(ctx);
+            let userKey = getCookie(ctx, SESSION_KEY);
             if (userKey) {
                 let login = Login.getByKey(userKey);
                 if (login) {
-                    // show authenticated page
+                    ctx.body = await showAuthPage(ctx);
+                    ctx.set('Content-Type', HttpProtocols.CONTENT_TYPES.html);
                 } else {
-                    // show login page
+                    ctx.body = await showLoginPage(ctx);
+                    ctx.set('Content-Type', HttpProtocols.CONTENT_TYPES.html);
                 }
             } else {
-                // show login page
+                ctx.body = await showLoginPage(ctx);
+                ctx.set('Content-Type', HttpProtocols.CONTENT_TYPES.html);
             }
         } catch (error) {
             console.log(error);
@@ -130,7 +135,9 @@ function startLogoutService() {
 }
 
 function startServer() {
-    app.listen(3000);  // TODO: Switch to certificated SSL
+    app.listen(PORT);  // TODO: Switch to certificated SSL
+    console.log("Server listening on port " + PORT);
+    console.log("Current working directory: " + __dirname);
 }
 
 /**
@@ -157,4 +164,24 @@ function setCookie(ctx, name, value, expirationDate) {
         options.expires = expirationDate;
     }
     ctx.cookies.set(name, value, options);
+}
+
+function showLoginPage() {
+    return getPromiseOfFileContents('./frontend/private/auth/login.html');
+}
+
+function showAuthPage() {
+    return getPromiseOfFileContents('./frontend/private/auth/auth.html');
+}
+
+function getPromiseOfFileContents(filepath) {
+    return new Promise((fulfill, fail) => {
+        fs.readFile(filepath, (error, data) => {
+            if (error) {
+                fail(error);
+            } else {
+                fulfill(data.toString());
+            }
+        })
+    });
 }
