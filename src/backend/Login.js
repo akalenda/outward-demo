@@ -19,23 +19,23 @@ class Login {
 
     /**
      * @param {String} username
-     * @param {String} password
      */
-    constructor(username, password) {
+    constructor(username) {
         this._username = username;
-        this._salt = loginDatabase.getSalt(this._username);
-        this._encryptedPassword = Cryptographer.encrypt(password, this._salt);
         this._isLoggedIn = false;
     }
 
     /**
      * @returns {Login}
      */
-    attemptLogin() {
-        let storedEncryptedPassword = loginDatabase.getPassword(this._username);
-        if (Cryptographer.slowEquals(storedEncryptedPassword, this._encryptedPassword)) {
+    async attemptLogin(givenPassword) {
+        let salt = await loginDatabase.getSalt(this._username);
+        let givenEncryptedPassword = Cryptographer.encrypt(givenPassword, salt);
+        let storedEncryptedPassword = await loginDatabase.getPassword(this._username);
+        if (Cryptographer.slowEquals(givenEncryptedPassword, storedEncryptedPassword)) {
             this._key = Cryptographer.sha512(this._username);  // TODO: Should we use the heavy-duty encryption for this too?
             usersCurrentyLoggedIn.stash(this._key, this);
+            this._isLoggedIn = true;
             return this;
         }
         return this;

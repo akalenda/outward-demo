@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 const HttpProtocols = require('./frontend/public/HttpProtocols');
+const Https = require('https');
 const Koa = require('koa');
 const KoaBodyParser = require('koa-bodyparser');
 const KoaLogger = require('koa-logger');
@@ -66,25 +67,28 @@ function startMathService() {
 }
 
 function startAuthService() {
-    router.get('/auth', async (ctx, ignored) => {
-        try {
-            // TODO: Surely there's a better way to handle these booleans. Maybe Promises/yield? But that mixes up intentional exceptions with unintended errors...
-            let userKey = getCookie(ctx, SESSION_KEY);
-            if (userKey) {
-                let login = Login.getByKey(userKey);
-                if (login) {
-                    ctx.body = await showAuthPage(ctx);
+    function wrapResourceRequest(bodyContentProducer, requestPath, localFilePath){
+        router.get(requestPath, async (ctx, ignored) => {
+            try {
+                // TODO: Surely there's a better way to handle these booleans. Maybe Promises/yield? But that mixes up intentional exceptions with unintended errors...
+                let userKey = getCookie(ctx, SESSION_KEY);
+                if (userKey) {
+                    let login = Login.getByKey(userKey);
+                    if (login) {
+                        bodyContentProducer(ctx, localFilePath);
+                    } else {
+                        ctx.body = await showLoginPage(ctx);
+                    }
                 } else {
                     ctx.body = await showLoginPage(ctx);
                 }
-            } else {
-                ctx.body = await showLoginPage(ctx);
+            } catch (error) {
+                console.log(error);
+                ctx.throw(403);
             }
-        } catch (error) {
-            console.log(error);
-            ctx.throw(403);
-        }
-    });
+        });
+    }
+    wrapResourceRequest(sendHtml, '/auth', './frontend/private/auth/auth.html');
 }
 
 function startLoginService() {
@@ -101,9 +105,9 @@ function startLoginService() {
                     ctx.body = await showLoginPage(ctx);
                 }
             }
-            let username = 'testuser'.toLowerCase();
-            let password = 'password1234';
-            let userLogin = new Login(username, password).attemptLogin();
+            let username = ctx.request.body.username.toLowerCase();
+            let password = ctx.request.body.password;
+            let userLogin = await new Login(username).attemptLogin(password);
             if (userLogin._isLoggedIn) {
                 setCookie(ctx, SESSION_KEY, userLogin.getKey(), userLogin.getExpirationDate());
                 ctx.redirect('/auth');
@@ -134,9 +138,15 @@ function startLogoutService() {
 }
 
 function startServer() {
-    app.listen(PORT);  // TODO: Switch to certificated SSL
-    console.log("Server listening on port " + PORT);
-    console.log("Current working directory: " + __dirname);
+    try {
+        app.listen(PORT);
+        // TODO switch to SSL, unfortunately, binding certbot to a domain seems to be a problem when i dont own one
+        // Https.createServer(app.callback()).listen(PORT);
+        console.log("Server listening on port " + PORT);
+        console.log("Current working directory: " + __dirname);
+    } catch(error) {
+        console.log(error);
+    }
 }
 
 /**
@@ -153,9 +163,9 @@ function expireCookie(ctx, name) {
 }
 
 function setCookie(ctx, name, value, expirationDate) {
-    let options = {
+    let options = {  // TODO: credentials
         domain: DOMAIN,
-        secure: true,
+        secure: false,  // TODO: switch to SSL, set true
         samesite: true,
         overwrite: true
     };
@@ -166,13 +176,17 @@ function setCookie(ctx, name, value, expirationDate) {
 }
 
 function showLoginPage(ctx) {
-    ctx.set('Content-Type', HttpProtocols.CONTENT_TYPES.html);
-    return getPromiseOfFileContents('./frontend/private/auth/login.html');
+    return sendHtml(ctx, './frontend/private/login.html');
 }
 
-function showAuthPage(ctx) {
+function sendHtml(ctx, filePath) {
     ctx.set('Content-Type', HttpProtocols.CONTENT_TYPES.html);
-    return getPromiseOfFileContents('./frontend/private/auth/auth.html');
+    return getPromiseOfFileContents(filePath);
+}
+
+function sendJs(ctx, filePath) {
+    ctx.set('Content-Type', HttpProtocols.CONTENT_TYPES.js);
+    return getPromiseOfFileContents(filePath);
 }
 
 function getPromiseOfFileContents(filepath) {

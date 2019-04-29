@@ -2,7 +2,8 @@ let HTTP_PROTOCOLS = {
     CONTENT_TYPES: {
         plainText: "text/plain",
         json: "application/json",
-        html: 'text/html'
+        html: 'text/html',
+        js: 'application/js'
     }
 };
 
