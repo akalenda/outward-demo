@@ -1,5 +1,5 @@
 const Cryptographer = require('./Cryptographer');
-const Database = require('./DatabaseAbstraction');
+const Database = require('./Database');
 const InternalCache = require('./InternalCache');
 
 const SECONDS_PER_MINUTE = 60;

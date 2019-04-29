@@ -81,7 +81,7 @@ class InternalCache {
         // It'd be a tradeoff. More frequent flushes means smaller batches, but more context switches
         const millisecondsInterval = this._secondsToLive * MILLISECONDS_PER_SECOND;
         while (this._continueFlushing) {
-            this._flushingService = setTimeout(this._flushExpiredEntries, millisecondsInterval);
+            this._flushingService = setInterval(this._flushExpiredEntries, millisecondsInterval);
             await this._flushingService;
         }
     }

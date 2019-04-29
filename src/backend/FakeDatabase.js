@@ -4,12 +4,6 @@ const tables = {
     'usersBySalt': {}
 };
 
-function simulateQueryTime(milliseconds, resolve) {
-    return new Promise(function(resolve) {
-        setTimeout(resolve, milliseconds);
-    });
-}
-
 /**
  * For demo purposes.
  *
@@ -21,7 +15,7 @@ function simulateQueryTime(milliseconds, resolve) {
  * change passwords.
  */
 
-class FakeDatabase {
+module.exports = {
 
     /**
      * @param {String} tableName
@@ -29,8 +23,11 @@ class FakeDatabase {
      * @returns {Promise<*>}
      */
     apiGet(tableName, primaryKey) {
-        return simulateQueryTime(20, () => tables[tableName][primaryKey]);
-    }
+        return new Promise(resolve => {
+            resolve();
+            return tables[tableName][primaryKey];
+        });
+    },
 
     /**
      * @param {string} tableName
@@ -39,8 +36,11 @@ class FakeDatabase {
      * @returns {Promise<*>}
      */
     apiPut(tableName, primaryKey, value) {
-        return simulateQueryTime(20, () => tables[tableName][primaryKey] = value);
+        return new Promise(resolve => {
+            resolve();
+            let isBeingReplaced = tables[tableName][primaryKey];
+            tables[tableName][primaryKey] = value;
+            return isBeingReplaced;
+        });
     }
-}
-
-module.exports = FakeDatabase;
+};
