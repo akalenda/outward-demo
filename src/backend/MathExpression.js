@@ -19,7 +19,7 @@ class MathExpression extends BinaryTree {
     }
 
     /**
-     * @returns {*}
+     * @returns {number}
      */
     evaluate(){
         if (typeof this.data === 'function') {
