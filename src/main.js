@@ -14,6 +14,14 @@ const router = new KoaRouter();
 const SESSION_KEY = 'sessionKey';
 const DOMAIN = 'outward-demo';
 
+startServices().catch(error => console.log(error));
+
+async function startServices() {
+    let loginsAvailable = await insertTestUserIntoDatabase();
+    if (!loginsAvailable)
+        throw new Error('Failed to store in database despite no obvious error :-(');
+}
+
 app.use(KoaLogger());
 app.use(KoaStatic('frontend/public'));
 app.use(KoaBodyParser());
@@ -87,6 +95,18 @@ router.post('/api/logout', async (ctx, ignored) => {
 app.use(router.routes());
 app.use(router.allowedMethods());
 app.listen(3000);  // TODO: Switch to certificated SSL
+
+async function insertTestUserIntoDatabase(){
+    let DatabaseAbstraction = require('./backend/DatabaseAbstraction');
+    let Cryptographer = require('./backend/Cryptographer');
+    let username = 'testuser';
+    let password = 'password1234';
+    let salt = Cryptographer.generateUniqueSalt();
+    let encryptedPassword = Cryptographer.encrypt(password, salt);
+    let saltIsStored = await DatabaseAbstraction.storeSalt(username, salt);
+    let passwordIsStored = await DatabaseAbstraction.storeEncryptedPassword(username, encryptedPassword);
+    return saltIsStored && passwordIsStored;
+}
 
 /**
  * @param ctx

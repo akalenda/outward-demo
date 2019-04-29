@@ -1,14 +1,13 @@
-const Cryptographer = require('Cryptographer');
-const Database = require('./Database');
+const Cryptographer = require('./Cryptographer');
+const Database = require('./DatabaseAbstraction');
 const InternalCache = require('./InternalCache');
 
 const SECONDS_PER_MINUTE = 60;
 const LOGIN_EXPIRY = 10 * SECONDS_PER_MINUTE;
 const usersCurrentyLoggedIn = new InternalCache(LOGIN_EXPIRY);
+const loginDatabase = Database;
 
 class Login {
-
-    static database = Database;
 
     /**
      * @param {String} key
@@ -24,7 +23,7 @@ class Login {
      */
     constructor(username, password) {
         this._username = username;
-        this._salt = Login.database.getSalt(this._username);
+        this._salt = loginDatabase.getSalt(this._username);
         this._encryptedPassword = Cryptographer.encrypt(password, this._salt);
         this._isLoggedIn = false;
     }
@@ -33,7 +32,7 @@ class Login {
      * @returns {Login}
      */
     attemptLogin() {
-        let storedEncryptedPassword = Login.database.getPassword(this._username);
+        let storedEncryptedPassword = loginDatabase.getPassword(this._username);
         if (Cryptographer.slowEquals(storedEncryptedPassword, this._encryptedPassword)) {
             this._key = Cryptographer.sha512(this._username);  // TODO: Should we use the heavy-duty encryption for this too?
             usersCurrentyLoggedIn.stash(this._key, this);
@@ -61,7 +60,7 @@ class Login {
     }
 
     getExpirationDate() {
-        return usersCurrentyLoggedIn.refreshAndGetExpirationDate(key);
+        return usersCurrentyLoggedIn.refreshAndGetExpirationDate(this._key);
     }
 }
 
