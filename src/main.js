@@ -14,98 +14,122 @@ const router = new KoaRouter();
 const SESSION_KEY = 'sessionKey';
 const DOMAIN = 'outward-demo';
 
-startServices().catch(error => console.log(error));
+startServices().catch(error => {
+    console.log(error)
+});
 
 async function startServices() {
-    let loginsAvailable = await insertTestUserIntoDatabase();
-    if (!loginsAvailable)
-        throw new Error('Failed to store in database despite no obvious error :-(');
+    let loginsAreAvailable = await insertTestUserIntoDatabase();
+    if (!loginsAreAvailable)
+        throw new Error('Failed to store in database despite no obvious error :(');
+    setKoaToUseMiddleware();
+    startMathService();
+    startAuthService();
+    startLoginService();
+    startLogoutService();
+    startServer()
 }
 
-app.use(KoaLogger());
-app.use(KoaStatic('frontend/public'));
-app.use(KoaBodyParser());
-
-router.post('/api/math', async (ctx, ignored) => {
-    let text = ctx.request.body.text;
-    ctx.body = MathExpression.from(text).evaluate().toString()
-});
-
-router.get('/auth', async (ctx, ignored) => {
-    try {
-        // TODO: Surely there's a better way to handle these booleans. Maybe Promises/yield? But that mixes up intentional exceptions with unintended errors...
-        let userKey = getCookie(ctx);
-        if (userKey) {
-            let login = Login.getByKey(userKey);
-            if (login) {
-                // show authenticated page
-            } else {
-                // show login page
-            }
-        } else {
-            // show login page
-        }
-    } catch(error) {
-        console.log(error);
-        // show status 403
-    }
-});
-
-router.post('/api/login', async (ctx, ignored) => {
-    try {
-        // TODO: Measure timing and create a lower bound. Wrap login process so that, regardless of execution path, it takes the same time. This is to provide some protection against timing attacks.
-        let userKey = getCookie(ctx);
-        if (userKey) {
-            let login = Login.getByKey(userKey);
-            if (login) {
-                ctx.redirect('/auth');
-            } else {
-                expireCookie(ctx, SESSION_KEY);
-            }
-        }
-        let username = 'testuser'.toLowerCase();
-        let password = 'password1234';
-        let userLogin = new Login(username, password).attemptLogin();
-        if (userLogin._isLoggedIn) {
-            setCookie(ctx, SESSION_KEY, userLogin.getKey(), userLogin.getExpirationDate());
-            ctx.redirect('/auth');
-        } else {
-            // set status 403
-        }
-    } catch (error) {
-        console.log(error);
-        // set status 403
-    }
-});
-
-router.post('/api/logout', async (ctx, ignored) => {
-    try {
-        let userKey = getCookie(ctx, SESSION_KEY);
-        let login = Login.getByKey(userKey);
-        if (login) {
-            login.logout();
-        }
-        ctx.redirect('/auth');
-    } catch (error) {
-        console.log(error);
-        // send message regarding failure to log out
-    }
-});
-
-app.use(router.routes());
-app.use(router.allowedMethods());
-app.listen(3000);  // TODO: Switch to certificated SSL
-
+/**
+ * @returns {Promise<Boolean>}
+ */
 async function insertTestUserIntoDatabase(){
-    let DatabaseAbstraction = require('./backend/DatabaseAbstraction');
+    let Database = require('./backend/Database');
     let Cryptographer = require('./backend/Cryptographer');
     let username = 'testuser';
     let password = 'password1234';
-    let salt = Cryptographer.generateUniqueSalt();
+    let salt = await Cryptographer.generateUniqueSalt();
     let encryptedPassword = Cryptographer.encrypt(password, salt);
-    let saltIsStored = await DatabaseAbstraction.storeSalt(username, salt);
-    let passwordIsStored = await DatabaseAbstraction.storeEncryptedPassword(username, encryptedPassword);
-    return saltIsStored && passwordIsStored;
+    let saltStoredPromise = Database.storeSalt(username, salt);
+    let passwordStoredPromise = Database.storeEncryptedPassword(username, encryptedPassword);
+    let storageSuccess = (await saltStoredPromise) && (await passwordStoredPromise);
+    return storageSuccess;
+}
+
+function setKoaToUseMiddleware() {
+    app.use(KoaLogger());
+    app.use(KoaStatic('frontend/public'));
+    app.use(KoaBodyParser());
+    app.use(router.routes());
+    app.use(router.allowedMethods());
+}
+
+function startMathService() {
+    router.post('/api/math', async (ctx, ignored) => {
+        let text = ctx.request.body.text;
+        ctx.body = MathExpression.from(text).evaluate().toString()
+    });
+}
+
+function startAuthService() {
+    router.get('/auth', async (ctx, ignored) => {
+        try {
+            // TODO: Surely there's a better way to handle these booleans. Maybe Promises/yield? But that mixes up intentional exceptions with unintended errors...
+            let userKey = getCookie(ctx);
+            if (userKey) {
+                let login = Login.getByKey(userKey);
+                if (login) {
+                    // show authenticated page
+                } else {
+                    // show login page
+                }
+            } else {
+                // show login page
+            }
+        } catch (error) {
+            console.log(error);
+            // show status 403
+        }
+    });
+}
+
+function startLoginService() {
+    router.post('/api/login', async (ctx, ignored) => {
+        try {
+            // TODO: Measure timing and create a lower bound. Wrap login process so that, regardless of execution path, it takes the same time. This is to provide some protection against timing attacks.
+            let userKey = getCookie(ctx);
+            if (userKey) {
+                let login = Login.getByKey(userKey);
+                if (login) {
+                    ctx.redirect('/auth');
+                } else {
+                    expireCookie(ctx, SESSION_KEY);
+                }
+            }
+            let username = 'testuser'.toLowerCase();
+            let password = 'password1234';
+            let userLogin = new Login(username, password).attemptLogin();
+            if (userLogin._isLoggedIn) {
+                setCookie(ctx, SESSION_KEY, userLogin.getKey(), userLogin.getExpirationDate());
+                ctx.redirect('/auth');
+            } else {
+                // set status 403
+            }
+        } catch (error) {
+            console.log(error);
+            // set status 403
+        }
+    });
+}
+
+function startLogoutService() {
+    router.post('/api/logout', async (ctx, ignored) => {
+        try {
+            let userKey = getCookie(ctx, SESSION_KEY);
+            let login = Login.getByKey(userKey);
+            if (login) {
+                login.logout();
+            }
+            ctx.redirect('/auth');
+        } catch (error) {
+            console.log(error);
+            // send message regarding failure to log out
+        }
+    });
+}
+
+function startServer() {
+    app.listen(3000);  // TODO: Switch to certificated SSL
 }
 
 /**
