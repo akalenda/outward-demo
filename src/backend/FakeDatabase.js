@@ -24,8 +24,7 @@ module.exports = {
      */
     apiGet(tableName, primaryKey) {
         return new Promise(resolve => {
-            resolve();
-            return tables[tableName][primaryKey];
+            resolve(tables[tableName][primaryKey]);
         });
     },
 
@@ -37,10 +36,9 @@ module.exports = {
      */
     apiPut(tableName, primaryKey, value) {
         return new Promise(resolve => {
-            resolve();
-            let isBeingReplaced = tables[tableName][primaryKey];
+            let isBeingReplaced = !!tables[tableName][primaryKey];
             tables[tableName][primaryKey] = value;
-            return isBeingReplaced;
+            resolve(isBeingReplaced);
         });
     }
 };

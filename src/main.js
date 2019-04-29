@@ -42,11 +42,12 @@ async function insertTestUserIntoDatabase(){
     let encryptedPassword = Cryptographer.encrypt(password, salt);
     let saltStoredPromise = Database.storeSalt(username, salt);
     let passwordStoredPromise = Database.storeEncryptedPassword(username, encryptedPassword);
-    let storageSuccess = (await saltStoredPromise) && (await passwordStoredPromise);
-    return storageSuccess;
+    let saltStoreSuccess = await saltStoredPromise;
+    let passwordStoreSuccess = await passwordStoredPromise;
+    return saltStoreSuccess && passwordStoreSuccess;
 }
 
-function setKoaToUseMiddleware() {
+async function setKoaToUseMiddleware() {
     app.use(KoaLogger());
     app.use(KoaStatic('frontend/public'));
     app.use(KoaBodyParser());

@@ -40,7 +40,9 @@ module.exports = {
     async storeSalt(username, salt) {
         let booleanPromise1 = FakeDatabase.apiPut('saltsByUser', username, salt);
         let booleanPromise2 = FakeDatabase.apiPut('usersBySalt', salt, username);
-        return (await booleanPromise1) && (await booleanPromise2);
+        let ok1 = await booleanPromise1;
+        let ok2 = await booleanPromise2;
+        return isBoolean(ok1) && isBoolean(ok2);
     },
 
     /**
@@ -49,6 +51,11 @@ module.exports = {
      * @returns {Promise<boolean>}
      */
     async storeEncryptedPassword(username, encryptedPassword) {
-        return FakeDatabase.apiPut('passwordsByUser', username, encryptedPassword);
+        let oldValueWasReplaced = await FakeDatabase.apiPut('passwordsByUser', username, encryptedPassword);
+        return isBoolean(oldValueWasReplaced);  // replaced or not, the value was stored
     }
 };
+
+function isBoolean(value) {
+    return value === true || value === false;
+}
