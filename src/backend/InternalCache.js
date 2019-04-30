@@ -14,11 +14,13 @@ class InternalCache {
     constructor(secondsToLive) {
         this._secondsToLive = secondsToLive;
         this._continueFlushing = true;
+
         /**
-         * @type {{String: Entry}}
+         * @type {Map<String, Entry>}
          * @private
          */
-        this._map = {};
+        this._map = new Map();
+
         // noinspection JSIgnoredPromiseFromCall
         //this.startPeriodicFlushing(); TODO: Disabled because it messes with debugger step-through. Uncomment later.
     }
@@ -28,7 +30,7 @@ class InternalCache {
      * @param {*} value
      */
     stash(key, value) {
-        this._map[key] = new Entry(value, this._generateExpirationDate());
+        this._map.set(key, new Entry(value, this._generateExpirationDate()));
     }
 
     /**
@@ -36,7 +38,7 @@ class InternalCache {
      * @returns {* | undefined}
      */
     getAndRefresh(key) {
-        let entry = this._map[key];
+        let entry = this._map.get(key);
         if (entry) {
             this._refreshTimeOn(entry);
             return entry.value;
@@ -49,7 +51,7 @@ class InternalCache {
      * @returns {*}
      */
     get(key) {
-        return this._map[key].value;
+        return this._map.get(key).value;
     }
 
     /**
@@ -57,7 +59,7 @@ class InternalCache {
      * @returns {Date}
      */
     refreshAndGetExpirationDate(key){
-        let entry = this._map[key];
+        let entry = this._map.get(key);
         this._refreshTimeOn(entry);
         return entry.expirationDate;
     }
@@ -88,13 +90,17 @@ class InternalCache {
         }
     }
 
+    _iterator() {
+        return this._map[Symbol.iterator]();
+    }
+
     _flushExpiredEntries() {
         let keysToFlush = [];
-        for (let key in this._map) {
+        for (let key in this._iterator()) {
             if (this._map.hasOwnProperty(key)) {
                 // I think there is a possibility the iterator could be compromised if we remove entries here
                 // I'll play it safe and queue them to be removed afterward
-                if (this._map[key].hasExpired()) {
+                if (this._map.get(key).hasExpired()) {
                     keysToFlush.push(key);
                 }
             }
