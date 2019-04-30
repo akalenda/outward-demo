@@ -96,7 +96,7 @@ class InternalCache {
 
     _flushExpiredEntries() {
         let keysToFlush = [];
-        for (let key in this._iterator()) {
+        for (let key of this._iterator()) {
             if (this._map.hasOwnProperty(key)) {
                 // I think there is a possibility the iterator could be compromised if we remove entries here
                 // I'll play it safe and queue them to be removed afterward
