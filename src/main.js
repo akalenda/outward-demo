@@ -30,20 +30,8 @@ async function startServices() {
     startMathService();
     startAuthService();
     startLoginService();
-    quickExperiment();
     await startLogoutService();
     startServer()
-}
-
-function quickExperiment() {
-    router.get('/bleh', async (ctx, ignored) => {
-        ctx.body = 'bleh';
-        ctx.cookies.set('bleh', 'bleagh', {httpOnly: false});
-    });
-    router.get('/blehReset', async (ctx, ignored) => {
-        ctx.body = 'bleh';
-        ctx.cookies.set('bleh');
-    });
 }
 
 /**
@@ -157,18 +145,6 @@ function startServer() {
         // Https.createServer(app.callback()).listen(PORT);
         console.log("Server listening on port " + PORT);
         console.log("Current working directory: " + __dirname);
-
-        // a quick experiment...
-        let app2 = new Koa();
-        app2.use(async ctx => {
-            ctx.body = 'hallo wyrld';
-            ctx.cookies.set('foo', 'bar', {httpOnly: false});
-            // TODO: Aha! This works. Perhaps it is a problem with the routes, or with being a few function layers deep
-            // without proper Promise propogation. Or maybe they should be generators. More experiments ensue...
-            console.log(ctx.cookies);
-        });
-        app2.listen(4242);
-
     } catch(error) {
         console.log(error);
     }
