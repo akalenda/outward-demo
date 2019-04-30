@@ -33,12 +33,15 @@ class InternalCache {
 
     /**
      * @param {string} key
-     * @returns {*}
+     * @returns {* | undefined}
      */
     getAndRefresh(key) {
         let entry = this._map[key];
-        this._refreshTimeOn(entry);
-        return entry.value;
+        if (entry) {
+            this._refreshTimeOn(entry);
+            return entry.value;
+        }
+        return undefined;
     }
 
     /**

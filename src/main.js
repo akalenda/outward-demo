@@ -76,6 +76,7 @@ function startAuthService() {
                 if (login) {
                     sendHtml(ctx, './frontend/private/auth/auth.html');
                 } else {
+                    expireCookie(ctx, SESSION_KEY);
                     ctx.body = await showLoginPage(ctx);
                 }
             } else {
