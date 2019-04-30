@@ -30,8 +30,20 @@ async function startServices() {
     startMathService();
     startAuthService();
     startLoginService();
+    quickExperiment();
     await startLogoutService();
     startServer()
+}
+
+function quickExperiment() {
+    router.get('/bleh', async (ctx, ignored) => {
+        ctx.body = 'bleh';
+        ctx.cookies.set('bleh', 'bleagh', {httpOnly: false});
+    });
+    router.get('/blehReset', async (ctx, ignored) => {
+        ctx.body = 'bleh';
+        ctx.cookies.set('bleh');
+    });
 }
 
 /**
@@ -108,7 +120,7 @@ function startLoginService() {
             let password = ctx.request.body.password;
             let userLogin = await new Login(username).attemptLogin(password);
             if (userLogin._isLoggedIn) {
-                setCookie(ctx, SESSION_KEY, userLogin.getKey(), userLogin.getExpirationDate());
+                await setCookie(ctx, SESSION_KEY, userLogin.getKey(), userLogin.getExpirationDate());
                 ctx.redirect('/auth');
                 return ctx;
             } else {
@@ -175,7 +187,7 @@ function expireCookie(ctx, name) {
     ctx.cookies.set(name);
 }
 
-function setCookie(ctx, name, value, expirationDate) {
+async function setCookie(ctx, name, value, expirationDate) {
     let options = {  // TODO: credentials
         /*domain: DOMAIN,
         secure: false,  // TODO: switch to SSL, set true
