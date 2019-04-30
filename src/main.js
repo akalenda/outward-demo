@@ -188,9 +188,6 @@ function setCookie(ctx, name, value, expirationDate) {
     }
     // TODO: Setting cookies isn't happening! That's why we can't log in. But WHYYYYYyyyyyy
     ctx.cookies.set(name, value, options);
-    if (ctx.cookies.keys === undefined) {
-        throw new Error("Server is not setting cookies...")
-    }
 }
 
 function showLoginPage(ctx) {
