@@ -127,14 +127,17 @@ function startLogoutService() {
     router.post('/api/logout', async (ctx, ignored) => {
         try {
             let userKey = getCookie(ctx, SESSION_KEY);
-            let login = Login.getByKey(userKey);
-            if (login) {
-                login.logout();
+            if (userKey) {
+                let login = Login.getByKey(userKey);
+                if (login) {
+                    login.logout();
+                }
+                expireCookie(ctx, SESSION_KEY);
             }
             ctx.redirect('/auth');
         } catch (error) {
             console.log(error);
-            // send message regarding failure to log out
+            ctx.throw(500, "The server was unable to log you out");
         }
     });
 }
@@ -166,10 +169,9 @@ function expireCookie(ctx, name) {
 
 async function setCookie(ctx, name, value, expirationDate) {
     let options = {  // TODO: credentials
-        /*domain: DOMAIN,
         secure: false,  // TODO: switch to SSL, set true
         samesite: true,
-        overwrite: true,*/
+        overwrite: true,
         httpOnly: false
     };
     if(expirationDate instanceof Date) {
