@@ -15,7 +15,6 @@ const app = new Koa();
 const router = new KoaRouter();
 
 const SESSION_KEY = 'sessionKey';
-const DOMAIN = 'outward-demo';
 const PORT = 3000;
 
 startServices().catch(error => {
@@ -101,8 +100,6 @@ function startLoginService() {
                     return ctx;
                 } else {
                     expireCookie(ctx, SESSION_KEY);
-                    ctx.body = await showLoginPage(ctx);
-                    return ctx;
                 }
             }
             let username = ctx.request.body.username.toLowerCase();
