@@ -1,9 +1,13 @@
+/*
+    The trouble with using 3rd-party libraries for crypto like this is that you need
+    to review them every single time there's an update to the library.
+ */
+const bcrypt = require('bcrypt');
+const crypto = require('crypto');
 const Database = require('./Database');
 
-/*
-    It's generally a bad idea to roll your own password-hiding libraries like this...
-    But this is a demo after all
- */
+const SALT_ROUNDS = 10;
+
 module.exports = {
 
     async generateUniqueSalt() {
@@ -16,10 +20,11 @@ module.exports = {
         return prospectiveSalt;
     },
 
-    makeSalt(length=512) {
-        // TODO: https://en.wikipedia.org/wiki/Cryptographically_secure_pseudorandom_number_generator
-        // For now, we just want to get the program working to some extent. This will do for now...
-        return "" + Math.random();
+    /**
+     * @returns {Promise<String>}
+     */
+    makeSalt() {
+        return bcrypt.genSalt(SALT_ROUNDS).then();
     },
 
     /**
@@ -27,11 +32,11 @@ module.exports = {
      *
      * @param {String} str
      * @param {String} salt
-     * @returns {String}
+     * @returns {Promise<String>}
      */
     encrypt(str, salt) {
         let normalizedStr = this.sha512(salt + str);
-        let finalStr = this.bcrypt(normalizedStr);
+        return this.bcrypt(normalizedStr, salt);
         // TODO: I feel there is a danger here in which either of these
         // can have a character changed to the end-of-string character,
         // incorrectly terminating subsequent operations on the string and
@@ -39,18 +44,25 @@ module.exports = {
         // produce the same encrypted result. We should probably convert it
         // to a byte array before encrypting, and then base64-encode
         // that byte array. I think that would avoid the problem...?
-        return finalStr;
 
     },
 
+    /**
+     * @param str
+     * @returns {string}
+     */
     sha512(str) {
-        // TODO: fill stub
-        return str;
+        const hash = crypto.createHash('sha512');
+        return hash.digest('hex');
     },
 
-    bcrypt(str) {
-        // TODO: fill stub
-        return str;
+    /**
+     * @param str
+     * @param salt
+     * @returns {Promise<String>}
+     */
+    async bcrypt(str, salt) {
+        return bcrypt.hash(str, salt).then()
     },
 
     /**

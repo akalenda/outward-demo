@@ -30,8 +30,10 @@ class Login {
      */
     async attemptLogin(givenPassword) {
         let salt = await loginDatabase.getSalt(this._username);
-        let givenEncryptedPassword = Cryptographer.encrypt(givenPassword, salt);
-        let storedEncryptedPassword = await loginDatabase.getPassword(this._username);
+        let promiseGivenEncryptedPassword = Cryptographer.encrypt(givenPassword, salt);
+        let promiseStoredEncryptedPassword = loginDatabase.getPassword(this._username);
+        let givenEncryptedPassword = await promiseGivenEncryptedPassword;
+        let storedEncryptedPassword = await promiseStoredEncryptedPassword;
         if (Cryptographer.slowEquals(givenEncryptedPassword, storedEncryptedPassword)) {
             this._key = Cryptographer.sha512(this._username);  // TODO: Should we use the heavy-duty encryption for this too?
             usersCurrentyLoggedIn.stash(this._key, this);

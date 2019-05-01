@@ -43,7 +43,7 @@ async function insertTestUserIntoDatabase(){
     let username = 'testuser';
     let password = 'password1234';
     let salt = await Cryptographer.generateUniqueSalt();
-    let encryptedPassword = Cryptographer.encrypt(password, salt);
+    let encryptedPassword = await Cryptographer.encrypt(password, salt);
     let saltStoredPromise = Database.storeSalt(username, salt);
     let passwordStoredPromise = Database.storeEncryptedPassword(username, encryptedPassword);
     let saltStoreSuccess = await saltStoredPromise;
