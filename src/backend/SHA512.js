@@ -1,19 +1,7 @@
-const BITS_PER_BYTE = 8;
-const NUM_ONE_BITS_TO_APPEND = 1;
-const TOTAL_BITS_TO_APPEND = 128;
-const TARGET_BITS = 512;
-const ONE_AND_NUM_ZEROES = [
-    String.fromCharCode(0b1),
-    String.fromCharCode(0b10),
-    String.fromCharCode(0b100),
-    String.fromCharCode(0b1000),
-    String.fromCharCode(0b10000),
-    String.fromCharCode(0b100000),
-    String.fromCharCode(0b1000000),
-    String.fromCharCode(0b10000000)
-];
-const ALL_ZEROES = String.fromCharCode(0b00000000);
-const CHUNK_SIZE = 1024;
+const BITS_PER_CHAR = 16;
+const CHARS_PER_CHUNK = 1024 / BITS_PER_CHAR;
+const CHAR_MASK = 0xFFFF;  // Javascript characters are restricted to 16-bit numbers
+const chunkOfAllZeroes = String.fromCharCode(0b1010101010101010).repeat(CHARS_PER_CHUNK);
 
 /**
  * First 32 bits of the fractional parts of the cube roots of the first 80 prime numbers (2..409)
@@ -38,7 +26,7 @@ const roundConstants = [
     0x431d67c49c100d4c, 0x4cc5d4becb3e42b6, 0x597f299cfc657e2a, 0x5fcb6fab3ad6faec, 0x6c44198c4a475817
 ];
 
-module.export = function sha512(string) {
+function sha512(string) {
 
     // Translated from https://en.wikipedia.org/wiki/SHA-2#Pseudocode
 
@@ -53,66 +41,117 @@ module.export = function sha512(string) {
 
     let paddedString = pad(string);
 
-    for(let chunk of chunkIterator(paddedString)) {
+    for(let i = 0; i < paddedString.length; i += CHARS_PER_CHUNK) {
+        if (i + CHARS_PER_CHUNK > paddedString.length) {
+            throw new Error("Chunking does not precisely fit. Check padding algorithm.");
+        }
+        let chunk = paddedString.slice(i, (i+CHARS_PER_CHUNK));
         let extendedChunk = extendTimes5(chunk);
         let workingVariables = hashValues.slice();
         for (let i = 0; i < roundConstants.length; i++) {
             workingVariables = compress(extendedChunk, workingVariables);
         }
-        hashValues = add(hashValues, workingVariables);
+        hashValues = addChunks(hashValues, workingVariables);
     }
 
-    return bigEndianConcat(hashValues);
-};
-
-function* chunkIterator(string) {
-    for (let i = 0; i < string.length; i += CHUNK_SIZE) {
-        assert(i+CHUNK_SIZE <= string.length, "Chunking does not precisely fit. Check padding algorithm.");
-        yield string.slice(i, i+CHUNK_SIZE);
-    }
+    return String.fromCharCode.apply(null, hashValues);
 }
 
+
 function pad(string) {
-    let numZeroBitsToAppend = TARGET_BITS - (string.length + NUM_ONE_BITS_TO_APPEND + TOTAL_BITS_TO_APPEND) % TARGET_BITS;
-    let numZeroBytesToAppend = Math.floor(numZeroBitsToAppend / BITS_PER_BYTE);
-    let postfix1 = ONE_AND_NUM_ZEROES[numZeroBytesToAppend % BITS_PER_BYTE];
-    let postfix2 = ALL_ZEROES.repeat(numZeroBytesToAppend);
-    return string + postfix1 + postfix2;
+    // No need to be so precise as described in the Wikipedia algorithm.
+    // We'll just append until it's more than long enough, and then trim.
+    string = string + String.fromCharCode(0b010) + chunkOfAllZeroes;
+    let indexOfLastChar = string.length - (string.length % CHARS_PER_CHUNK);
+    return string.slice(0, indexOfLastChar);
 }
 
 function extendTimes5(chunk) {
     let extendedChunk = chunk.repeat(5);
+    let shuffledChunk = [];
     for (let i = chunk.length; i < extendedChunk.length; i++) {
-        let s0 = rotateRightAndXor(circularGetByte(chunk, i-15), [1, 8, 7]);
-        let s1 = rotateRightAndXor(circularGetByte(chunk, i-2), [19, 61, 6]);
-        let newByte = s0 + s1 + circularGetByte(chunk, i-7) + circularGetByte(chunk, i-16);
-        chunk[i] = String.fromCharCode(newByte);
+        let s0 = rotateRightAndXor(circularGet(extendedChunk, i-15), [1, 8, 7]);
+        let s1 = rotateRightAndXor(circularGet(extendedChunk, i-2), [19, 61, 6]);
+        let newByte = s0 + s1 + circularGet(extendedChunk, i-7) + circularGet(extendedChunk, i-16);
+        shuffledChunk.push(String.fromCharCode(newByte));
     }
-    return extendedChunk;
+    return shuffledChunk.join('');
 }
 
-function rotateRightAndXor(byte, offsetsForBitwiseRotations) {
-    offsetsForBitwiseRotations.reduce((acc, offset) => acc ^ rotateRight(byte, offset));
-
+/**
+ * @param {number} value
+ * @param {Array<Number>} offsetsForBitwiseRotations
+ * @returns {number}
+ */
+function rotateRightAndXor(value, offsetsForBitwiseRotations) {
+    let accumulator = rotateRight(value, offsetsForBitwiseRotations[0]);
+    for (let i = 1; i < offsetsForBitwiseRotations.length; i++) {
+        accumulator = accumulator ^ rotateRight(value, offsetsForBitwiseRotations[i])
+    }
+    return accumulator & CHAR_MASK;
 }
 
-function rotateRight(byte, offset) {
-    offset = offset % BITS_PER_BYTE;
-    return ((byte << offset) | (byte >>> (BITS_PER_BYTE))) & 0xFF;
+/**
+ * @param {number} value
+ * @param {number} offset
+ * @returns {number}
+ */
+function rotateRight(value, offset) {
+    offset = offset % BITS_PER_CHAR;
+    return ((value << offset) | (value >>> (BITS_PER_CHAR))) & CHAR_MASK;
 }
 
 /**
  * @param {String|Array} indexable
  * @param {Number} index
+ * @return {*}
  */
-function circularGetByte(indexable, index) {
+function circularGet(indexable, index) {
     return indexable.charCodeAt(index % indexable.length);
 }
 
-function compress(chunkOf512bits, workingVariables) {
-    // TODO: fill stub
+/**
+ * @param {String} chunk
+ * @param {number[]} workingVars
+ * @returns {*|Uint8Array|BigInt64Array|number[]|Float64Array|Int8Array|Float32Array|Int32Array|Uint32Array|Uint8ClampedArray|BigUint64Array|Int16Array|Uint16Array}
+ */
+function compress(chunk, workingVars) {
+    for (let i = 0; i < chunk.length; i++) {
+        let S0 = rotateRightAndXor(workingVars[0], [28, 34, 39]);
+        let S1 = rotateRightAndXor(workingVars[5], [14, 18, 41]);
+        let ch = (workingVars[5] & workingVars[6]) ^ ((~workingVars[5]) & workingVars[7]);
+        let temp1 = uint(workingVars[7]) + uint(S1) + uint(ch) + uint(roundConstants[i]) + uint(chunk.charCodeAt(i));
+        let maj = (workingVars[0] & workingVars[1])
+            ^ (workingVars[0] & workingVars[2])
+            ^ (workingVars[1] & workingVars[3]);
+        let temp2 = S0 + maj;
+        workingVars[8] = workingVars[7];
+        workingVars[7] = workingVars[6];
+        workingVars[6] = workingVars[5];
+        workingVars[5] = workingVars[4] + temp1;
+        workingVars[4] = workingVars[3];
+        workingVars[3] = workingVars[2];
+        workingVars[2] = workingVars[1];
+        workingVars[1] = workingVars[0];
+        workingVars[0] = temp1 + temp2;
+    }
+    return workingVars;
 }
 
-function bigEndianConcat(chunks) {
-    // TODO: fill stub
+function uint(value) {
+    return value >>> 0;
 }
+
+function addChunks(chunks1, chunks2) {
+    let chunksSummed = [];
+    for (let i = 0; i < chunks1.length; i++) {
+        chunksSummed.push(chunks1, chunks2);
+    }
+    return chunksSummed;
+}
+
+module.export = sha512;
+
+// TODO remove this test
+let test = sha512("the quick brown fox jumps over the lazy dog");
+console.log(test);
